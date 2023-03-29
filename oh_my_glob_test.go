@@ -14,6 +14,36 @@ func testCase(t *testing.T, glob string, path string, expected bool) {
 	}
 }
 
+func BenchmarkCompileLiteralPaths(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		Compile("dev/lib/the_cmd/commands/commands.yaml")
+	}
+}
+
+func BenchmarkLiteralPaths(b *testing.B) {
+	path := "dev/lib/the_cmd/commands/commands.yaml"
+	glob := Compile(path)
+
+	for i := 0; i < b.N; i++ {
+		glob.Match(path);
+	}
+}
+
+func BenchmarkCompileSubdirFromRoot(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		Compile("**/*.yaml")
+	}
+}
+
+func BenchmarkSubdirFromRoot(b *testing.B) {
+	path := "dev/lib/the_cmd/commands/commands.yaml"
+	glob := Compile("**/*.yaml")
+
+	for i := 0; i < b.N; i++ {
+		glob.Match(path);
+	}
+}
+
 func TestBasicGlob(t *testing.T) {
 	// basic string equality
 	testCase(t, "what", "what", true)
