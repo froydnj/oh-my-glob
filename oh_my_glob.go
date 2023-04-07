@@ -5,21 +5,27 @@ import (
 	"strings"
 )
 
+// "enum" for parts, below.
+const (
+	literal    = iota
+	singleStar = iota
+	doubleStar = iota
+)
+
 type part struct {
-	// 0, 1, or 2
-	stars int8
-	// only set if stars == 0
+	kind int8
+	// only set if kind == literal
 	lit string
 }
 
 var starstar part = part{
-	stars: 2,
-	lit:   "",
+	kind: doubleStar,
+	lit:  "",
 }
 
 var star part = part{
-	stars: 1,
-	lit:   "",
+	kind: singleStar,
+	lit:  "",
 }
 
 type Glob struct {
@@ -46,8 +52,8 @@ func Compile(glob string) Glob {
 			parts = append(parts, star)
 		} else {
 			parts = append(parts, part{
-				stars: 0,
-				lit:   fragment,
+				kind: literal,
+				lit:  fragment,
 			})
 		}
 	}
@@ -61,7 +67,7 @@ func Compile(glob string) Glob {
 // albeit with the single-character wildcard removed (since I don't
 // believe we need it.) For more details:
 //
-//   https://research.swtch.com/glob
+//	https://research.swtch.com/glob
 func match(pattern, name string) bool {
 	px := 0
 	nx := 0
@@ -132,8 +138,8 @@ func (g *Glob) Match(path string) bool {
 
 		if px < len(g.parts) {
 			c := g.parts[px]
-			switch c.stars {
-			case 0:
+			switch c.kind {
+			case literal:
 				if nx < len(path) {
 					// find the next substring
 					var chunk string
@@ -149,12 +155,12 @@ func (g *Glob) Match(path string) bool {
 						continue
 					}
 				}
-			case 2:
+			case doubleStar:
 				nextPx = px
 				nextNx = incrNx
 				px++
 				continue
-			case 1:
+			case singleStar:
 				if nx < len(path) {
 					px++
 					nx = incrNx
