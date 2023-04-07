@@ -14,34 +14,35 @@ func testCase(t *testing.T, glob string, path string, expected bool) {
 	}
 }
 
-func BenchmarkCompileLiteralPaths(b *testing.B) {
+func benchmarkCompile(b *testing.B, glob string) {
 	for i := 0; i < b.N; i++ {
-		Compile("dev/lib/the_cmd/commands/commands.yaml")
+		Compile(glob)
 	}
+}
+
+func benchmarkMatch(b *testing.B, glob, path string) {
+	compiled := Compile(glob)
+
+	for i := 0; i < b.N; i++ {
+		compiled.Match(path)
+	}
+}
+
+func BenchmarkCompileLiteralPaths(b *testing.B) {
+	benchmarkCompile(b, "dev/lib/the_cmd/commands/commands.yaml")
 }
 
 func BenchmarkLiteralPaths(b *testing.B) {
 	path := "dev/lib/the_cmd/commands/commands.yaml"
-	glob := Compile(path)
-
-	for i := 0; i < b.N; i++ {
-		glob.Match(path);
-	}
+	benchmarkMatch(b, path, path)
 }
 
 func BenchmarkCompileSubdirFromRoot(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		Compile("**/*.yaml")
-	}
+	benchmarkCompile(b, "**/*.yaml")
 }
 
 func BenchmarkSubdirFromRoot(b *testing.B) {
-	path := "dev/lib/the_cmd/commands/commands.yaml"
-	glob := Compile("**/*.yaml")
-
-	for i := 0; i < b.N; i++ {
-		glob.Match(path);
-	}
+	benchmarkMatch(b, "**/*.yaml", "dev/lib/the_cmd/commands/commands.yaml")
 }
 
 func TestBasicGlob(t *testing.T) {
