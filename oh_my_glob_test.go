@@ -45,6 +45,10 @@ func BenchmarkSubdirFromRoot(b *testing.B) {
 	benchmarkMatch(b, "**/*.yaml", "dev/lib/the_cmd/commands/commands.yaml")
 }
 
+func BenchmarkNegativeSubdirFromRoot(b *testing.B) {
+	benchmarkMatch(b, "**/*.yaml", "dev/lib/the_cmd/commands/build_from_scratch.rb")
+}
+
 func TestBasicGlob(t *testing.T) {
 	// basic string equality
 	testCase(t, "what", "what", true)
