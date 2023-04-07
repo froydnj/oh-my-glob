@@ -44,8 +44,9 @@ func Compile(glob string) Glob {
 		}
 	}
 
-	var parts []part
-	for _, fragment := range strings.Split(glob, "/") {
+	fragments := strings.Split(glob, "/")
+	parts := make([]part, 0, len(fragments))
+	for _, fragment := range fragments {
 		if fragment == "**" {
 			parts = append(parts, starstar)
 		} else if fragment == "*" {
