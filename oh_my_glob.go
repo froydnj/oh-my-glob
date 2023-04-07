@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+// "enum" for globs.
+const (
+	generalParts = iota
+)
+
 // "enum" for parts, below.
 const (
 	// Something that is not a literal `*` or `**`, but makes no other
@@ -35,6 +40,7 @@ var star part = part{
 type Glob struct {
 	// this is for pretty-printing the glob
 	original string
+	kind     int8
 	// we pre-break the glob at `/` boundaries for less processing
 	// later
 	parts []part
@@ -65,6 +71,7 @@ func Compile(glob string) Glob {
 	}
 	return Glob{
 		original: glob,
+		kind:     generalParts,
 		parts:    parts,
 	}
 }
@@ -113,7 +120,7 @@ func match(pattern, name string) bool {
 	return true
 }
 
-func (g *Glob) Match(path string) bool {
+func (g *Glob) matchGeneral(path string) bool {
 	// `px` is the index into the current path part
 	px := 0
 	// `nx` is the index into the string, which will change in
@@ -191,4 +198,14 @@ func (g *Glob) Match(path string) bool {
 		return false
 	}
 	return true
+}
+
+func (g *Glob) Match(path string) bool {
+	switch g.kind {
+	case generalParts:
+		return g.matchGeneral(path)
+	default:
+		log.Fatalf("Unexpected compiled glob kind")
+		return false
+	}
 }
