@@ -133,4 +133,6 @@ func TestCombined(t *testing.T) {
 	testCase(t, "config/**/*.conf", "config/this/foo.conf", true)
 	testCase(t, "config/**/*.conf", "config/this/that/foo.conf", true)
 	testCase(t, "config/**/*.conf", "something/else.conf", false)
+
+	testCase(t, "**/*.conf", "config/this/that/foo.conf", true)
 }
