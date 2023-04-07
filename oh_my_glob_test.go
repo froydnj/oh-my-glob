@@ -110,18 +110,23 @@ func TestDoubleStar(t *testing.T) {
 	testCase(t, "**/bar", "bar", true)
 	testCase(t, "**/bar", "foo/baz", false)
 	testCase(t, "**/bar", "foo/bar/bar", true)
+	testCase(t, "**/bar", "foo/baz/foobar", false)
 
 	// paths with double-star wildcards at end
 	testCase(t, "foo/**", "foo/bar", true)
+	testCase(t, "foo/**", "foo-other/bar", false)
 	testCase(t, "foo/**", "foo", true)
 	testCase(t, "foo/**", "baz/bar", false)
 	testCase(t, "foo/**", "foo/baz/bar", true)
+	testCase(t, "foo/**", "foo-other/baz/bar", false)
 
 	// paths with double-star wildcards in the middle
 	testCase(t, "foo/**/bar", "foo/bar", true)
 	testCase(t, "foo/**/bar", "foo/this/bar", true)
 	testCase(t, "foo/**/bar", "foo/this/that/bar", true)
+	testCase(t, "foo/**/bar", "foo/this/that/the-other-bar", false)
 	testCase(t, "foo/**/bar", "foo/this/that/the-other/bar", true)
+	testCase(t, "foo/**/bar", "foo/this/that/the-other/the-other-bar", false)
 	testCase(t, "foo/**/bar", "this/that/the-other/bar", false)
 	testCase(t, "foo/**/bar", "foo/this/that/the-other", false)
 	testCase(t, "foo/**/bar", "this/that/the-other", false)
