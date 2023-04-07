@@ -7,6 +7,8 @@ import (
 
 // "enum" for parts, below.
 const (
+	// Something that is not a literal `*` or `**`, but makes no other
+	// promises about its contents.
 	literal    = iota
 	singleStar = iota
 	doubleStar = iota
@@ -14,6 +16,8 @@ const (
 
 type part struct {
 	kind int8
+	// only set if kind == literal
+	no_stars bool
 	// only set if kind == literal
 	lit string
 }
@@ -53,8 +57,9 @@ func Compile(glob string) Glob {
 			parts = append(parts, star)
 		} else {
 			parts = append(parts, part{
-				kind: literal,
-				lit:  fragment,
+				kind:     literal,
+				lit:      fragment,
+				no_stars: strings.IndexByte(fragment, '*') == -1,
 			})
 		}
 	}
@@ -150,7 +155,11 @@ func (g *Glob) Match(path string) bool {
 						chunk = path[nx : incrNx-1]
 					}
 
-					if match(c.lit, chunk) {
+					if c.no_stars && c.lit == chunk {
+						px++
+						nx = incrNx
+						continue
+					} else if match(c.lit, chunk) {
 						px++
 						nx = incrNx
 						continue
