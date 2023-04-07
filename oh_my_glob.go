@@ -8,6 +8,8 @@ import (
 // "enum" for globs.
 const (
 	generalParts = iota
+	// **/*.suffix
+	recursiveWildcardSuffix = iota
 )
 
 // "enum" for parts, below.
@@ -46,6 +48,20 @@ type Glob struct {
 	parts []part
 }
 
+func (p *part) isWildcardSuffix() bool {
+	if p.kind != literal {
+		return false
+	}
+
+	if p.no_stars {
+		return false
+	}
+
+	// p has a star, and if the tail of p.lit does not have a
+	// star, then the star must have been at the beginning.
+	return strings.IndexByte(p.lit[1:], '*') == -1
+}
+
 func Compile(glob string) Glob {
 	if glob == "" {
 		return Glob{
@@ -69,6 +85,27 @@ func Compile(glob string) Glob {
 			})
 		}
 	}
+
+	if len(parts) == 2 {
+		if parts[len(parts)-2].kind == doubleStar {
+			// Matching the special case of **/*suffix.
+			if parts[len(parts)-1].isWildcardSuffix() {
+				parts[0] = part{
+					kind:     literal,
+					lit:      parts[len(parts)-1].lit[1:],
+					no_stars: true,
+				}
+				parts = parts[:1]
+				return Glob{
+					original: glob,
+					kind:     recursiveWildcardSuffix,
+					parts:    parts,
+				}
+			}
+		}
+
+	}
+
 	return Glob{
 		original: glob,
 		kind:     generalParts,
@@ -200,10 +237,16 @@ func (g *Glob) matchGeneral(path string) bool {
 	return true
 }
 
+func (g *Glob) matchRecursiveWildcardSuffix(path string) bool {
+	return strings.HasSuffix(path, g.parts[0].lit)
+}
+
 func (g *Glob) Match(path string) bool {
 	switch g.kind {
 	case generalParts:
 		return g.matchGeneral(path)
+	case recursiveWildcardSuffix:
+		return g.matchRecursiveWildcardSuffix(path)
 	default:
 		log.Fatalf("Unexpected compiled glob kind")
 		return false
