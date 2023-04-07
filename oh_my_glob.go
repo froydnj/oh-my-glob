@@ -10,6 +10,8 @@ const (
 	generalParts = iota
 	// **/*.suffix
 	recursiveWildcardSuffix = iota
+	// **/filename
+	recursiveWildcardFixedFile = iota
 )
 
 // "enum" for parts, below.
@@ -101,6 +103,18 @@ func Compile(glob string) Glob {
 				return Glob{
 					original: glob,
 					kind:     recursiveWildcardSuffix,
+					parts:    parts,
+				}
+			}
+
+			// Matching the special case of **/filename.
+			p := parts[len(parts)-1]
+			if p.kind == literal && p.no_stars {
+				parts[0] = p
+				parts = parts[:1]
+				return Glob{
+					original: glob,
+					kind:     recursiveWildcardFixedFile,
 					parts:    parts,
 				}
 			}
@@ -243,12 +257,30 @@ func (g *Glob) matchRecursiveWildcardSuffix(path string) bool {
 	return strings.HasSuffix(path, g.parts[0].lit)
 }
 
+func (g *Glob) matchRecursiveWildcardFixedFile(path string) bool {
+	// We need to handle two cases:
+	//
+	// 1. path/to/dir/filename
+	// 2. filename
+	if !strings.HasSuffix(path, g.parts[0].lit) {
+		return false
+	}
+
+	if len(path) == len(g.parts[0].lit) {
+		return true
+	}
+
+	return path[len(path)-len(g.parts[0].lit)-1] == '/'
+}
+
 func (g *Glob) Match(path string) bool {
 	switch g.kind {
 	case generalParts:
 		return g.matchGeneral(path)
 	case recursiveWildcardSuffix:
 		return g.matchRecursiveWildcardSuffix(path)
+	case recursiveWildcardFixedFile:
+		return g.matchRecursiveWildcardFixedFile(path)
 	default:
 		log.Fatalf("Unexpected compiled glob kind")
 		return false
