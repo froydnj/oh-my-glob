@@ -153,3 +153,10 @@ func TestCombined(t *testing.T) {
 
 	testCase(t, "**/*.conf", "config/this/that/foo.conf", true)
 }
+
+func TestWildcardSuffix(t *testing.T) {
+	testCase(t, "config/*.conf", "config/foo.conf", true)
+	testCase(t, "config/*.conf", "config/this/foo.conf", false)
+	testCase(t, "config/*.conf", "config/this/that/foo.conf", false)
+	testCase(t, "config/*.conf", "something/else.conf", false)
+}
