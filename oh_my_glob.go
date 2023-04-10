@@ -169,24 +169,6 @@ func Compile(glob string) Glob {
 		}
 	}
 
-	if len(parts) == 2 {
-		if isPattern, prefixSlice := recursiveWildcardFixedFilePattern(parts); isPattern {
-			length := 1
-			// Build the directory prefix before we overwrite things.
-			if len(prefixSlice) != 0 {
-				parts[1] = buildDirectoryPrefixPart(prefixSlice)
-				length = 2
-			}
-			parts[0] = parts[len(parts)-1]
-			parts = parts[:length]
-			return Glob{
-				original: glob,
-				kind:     recursiveWildcardFixedFile,
-				parts:    parts,
-			}
-		}
-	}
-
 	if len(parts) >= 2 {
 		if isPattern, prefixSlice := recursiveWildcardSuffixPattern(parts); isPattern {
 			length := 1
@@ -204,6 +186,22 @@ func Compile(glob string) Glob {
 			return Glob{
 				original: glob,
 				kind:     recursiveWildcardSuffix,
+				parts:    parts,
+			}
+		}
+
+		if isPattern, prefixSlice := recursiveWildcardFixedFilePattern(parts); isPattern {
+			length := 1
+			// Build the directory prefix before we overwrite things.
+			if len(prefixSlice) != 0 {
+				parts[1] = buildDirectoryPrefixPart(prefixSlice)
+				length = 2
+			}
+			parts[0] = parts[len(parts)-1]
+			parts = parts[:length]
+			return Glob{
+				original: glob,
+				kind:     recursiveWildcardFixedFile,
 				parts:    parts,
 			}
 		}
@@ -374,12 +372,19 @@ func (g *Glob) matchRecursiveWildcardSuffix(path string) bool {
 }
 
 func (g *Glob) matchRecursiveWildcardFixedFile(path string) bool {
-	// We need to handle two cases:
+	// If we don't have a prefix, we need to consider two cases:
 	//
 	// 1. path/to/dir/filename
 	// 2. filename
 	if !strings.HasSuffix(path, g.parts[0].lit) {
 		return false
+	}
+
+	// We have a prefix, so the prefix needs to match.
+	if len(g.parts) == 2 {
+		if !strings.HasPrefix(path, g.parts[1].lit) {
+			return false;
+		}
 	}
 
 	if len(path) == len(g.parts[0].lit) {
