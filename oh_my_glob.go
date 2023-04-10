@@ -122,6 +122,29 @@ func recursiveWildcardSuffixPattern(parts []part) (bool, []part) {
 	return true, prefixSlice
 }
 
+// Do the parts represent **/filename with a (possibly) non-empty prefix of
+// literal, no-wildcard parts?
+func recursiveWildcardFixedFilePattern(parts []part) (bool, []part) {
+	if parts[len(parts)-2].kind != doubleStar {
+		return false, nil
+	}
+
+	p := parts[len(parts)-1]
+	if p.kind != literal {
+		return false, nil
+	}
+	if !p.no_stars {
+		return false, nil
+	}
+
+	prefixSlice := parts[:len(parts)-2]
+	if !allLiteralsNoWildcards(prefixSlice) {
+		return false, nil
+	}
+
+	return true, prefixSlice
+}
+
 func Compile(glob string) Glob {
 	if glob == "" {
 		return Glob{
@@ -147,20 +170,21 @@ func Compile(glob string) Glob {
 	}
 
 	if len(parts) == 2 {
-		if parts[len(parts)-2].kind == doubleStar {
-			// Matching the special case of **/filename.
-			p := parts[len(parts)-1]
-			if p.kind == literal && p.no_stars {
-				parts[0] = p
-				parts = parts[:1]
-				return Glob{
-					original: glob,
-					kind:     recursiveWildcardFixedFile,
-					parts:    parts,
-				}
+		if isPattern, prefixSlice := recursiveWildcardFixedFilePattern(parts); isPattern {
+			length := 1
+			// Build the directory prefix before we overwrite things.
+			if len(prefixSlice) != 0 {
+				parts[1] = buildDirectoryPrefixPart(prefixSlice)
+				length = 2
+			}
+			parts[0] = parts[len(parts)-1]
+			parts = parts[:length]
+			return Glob{
+				original: glob,
+				kind:     recursiveWildcardFixedFile,
+				parts:    parts,
 			}
 		}
-
 	}
 
 	if len(parts) >= 2 {
