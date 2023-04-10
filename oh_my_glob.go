@@ -12,6 +12,8 @@ const (
 	recursiveWildcardSuffix = iota
 	// **/filename
 	recursiveWildcardFixedFile = iota
+	// path/to/dir/*.suffix
+	fixedPathWildcardSuffix = iota
 )
 
 // "enum" for parts, below.
@@ -62,6 +64,43 @@ func (p *part) isWildcardSuffix() bool {
 	// p has a star, and if the tail of p.lit does not have a
 	// star, then the star must have been at the beginning.
 	return strings.IndexByte(p.lit[1:], '*') == -1
+}
+
+func allLiteralsNoWildcards(parts []part) bool {
+	for _, p := range parts {
+		if p.kind != literal {
+			return false
+		}
+		if !p.no_stars {
+			return false
+		}
+	}
+
+	return true
+}
+
+func buildDirectoryPrefixPart(parts []part) part {
+	// This is basically strings.Join(..., "/") + "/", but it's not quite
+	// that simple, because we don't have an array of strings to pass to
+	// Join.
+	builder := strings.Builder{}
+	capacity := 0
+	for _, p := range parts {
+		capacity += len(p.lit)
+		capacity++ // for the slash
+	}
+	builder.Grow(capacity)
+
+	for _, p := range parts {
+		builder.WriteString(p.lit)
+		builder.WriteString("/")
+	}
+
+	return part{
+		kind:     literal,
+		lit:      builder.String(),
+		no_stars: true,
+	}
 }
 
 func Compile(glob string) Glob {
@@ -118,6 +157,27 @@ func Compile(glob string) Glob {
 			}
 		}
 
+	}
+
+	if len(parts) >= 2 {
+		// Special-case path/to/dir/*suffix
+		if parts[len(parts)-1].isWildcardSuffix() {
+			prefixSlice := parts[:len(parts)-1]
+			if allLiteralsNoWildcards(prefixSlice) {
+				parts[0] = buildDirectoryPrefixPart(prefixSlice)
+				parts[1] = part{
+					kind:     literal,
+					lit:      parts[len(parts)-1].lit[1:],
+					no_stars: true,
+				}
+				parts = parts[:2]
+				return Glob{
+					original: glob,
+					kind:     fixedPathWildcardSuffix,
+					parts:    parts,
+				}
+			}
+		}
 	}
 
 	return Glob{
@@ -271,6 +331,22 @@ func (g *Glob) matchRecursiveWildcardFixedFile(path string) bool {
 	return path[len(path)-len(g.parts[0].lit)-1] == '/'
 }
 
+func (g *Glob) matchFixedPathWildcardSuffix(path string) bool {
+	// We test for the suffix first on the theory that matching the
+	// suffix is a better fast-reject than matching the fixed path.
+	if !strings.HasSuffix(path, g.parts[1].lit) {
+		return false
+	}
+
+	if !strings.HasPrefix(path, g.parts[0].lit) {
+		return false
+	}
+
+	// We have path/to/dir/<unknown>suffix.  Make sure that <unknown>
+	// doesn't contain directory separators.
+	return strings.IndexByte(path[len(g.parts[0].lit):], '/') == -1
+}
+
 func (g *Glob) Match(path string) bool {
 	switch g.kind {
 	case generalParts:
@@ -279,6 +355,8 @@ func (g *Glob) Match(path string) bool {
 		return g.matchRecursiveWildcardSuffix(path)
 	case recursiveWildcardFixedFile:
 		return g.matchRecursiveWildcardFixedFile(path)
+	case fixedPathWildcardSuffix:
+		return g.matchFixedPathWildcardSuffix(path)
 	default:
 		log.Fatalf("Unexpected compiled glob kind")
 		return false
