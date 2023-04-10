@@ -49,6 +49,14 @@ func BenchmarkNegativeSubdirFromRoot(b *testing.B) {
 	benchmarkMatch(b, "**/*.yaml", "dev/lib/the_cmd/commands/build_from_scratch.rb")
 }
 
+func BenchmarkPrefixedSubdirFromRoot(b *testing.B) {
+	benchmarkMatch(b, "dev/**/*.yaml", "dev/lib/the_cmd/commands/commands.yaml")
+}
+
+func BenchmarkNegativePrefixedSubdirFromRoot(b *testing.B) {
+	benchmarkMatch(b, "dev/**/*.yaml", "dev/lib/the_cmd/commands/build_from_scratch.rb")
+}
+
 func BenchmarkRecursiveFixedFile(b *testing.B) {
 	benchmarkMatch(b, "**/__package.rb", "dev/lib/the_cmd/commands/__package.rb")
 }
