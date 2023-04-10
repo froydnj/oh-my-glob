@@ -147,7 +147,24 @@ func Compile(glob string) Glob {
 	}
 
 	if len(parts) == 2 {
-		if isPattern, prefixSlice := recursiveWildcardSuffixPattern(parts); isParttern {
+		if parts[len(parts)-2].kind == doubleStar {
+			// Matching the special case of **/filename.
+			p := parts[len(parts)-1]
+			if p.kind == literal && p.no_stars {
+				parts[0] = p
+				parts = parts[:1]
+				return Glob{
+					original: glob,
+					kind:     recursiveWildcardFixedFile,
+					parts:    parts,
+				}
+			}
+		}
+
+	}
+
+	if len(parts) >= 2 {
+		if isPattern, prefixSlice := recursiveWildcardSuffixPattern(parts); isPattern {
 			length := 1
 			// Build the directory prefix before we overwrite things.
 			if len(prefixSlice) != 0 {
@@ -167,23 +184,6 @@ func Compile(glob string) Glob {
 			}
 		}
 
-		if parts[len(parts)-2].kind == doubleStar {
-			// Matching the special case of **/filename.
-			p := parts[len(parts)-1]
-			if p.kind == literal && p.no_stars {
-				parts[0] = p
-				parts = parts[:1]
-				return Glob{
-					original: glob,
-					kind:     recursiveWildcardFixedFile,
-					parts:    parts,
-				}
-			}
-		}
-
-	}
-
-	if len(parts) >= 2 {
 		// Special-case path/to/dir/*suffix
 		if parts[len(parts)-1].isWildcardSuffix() {
 			prefixSlice := parts[:len(parts)-1]
@@ -336,7 +336,17 @@ func (g *Glob) matchGeneral(path string) bool {
 }
 
 func (g *Glob) matchRecursiveWildcardSuffix(path string) bool {
-	return strings.HasSuffix(path, g.parts[0].lit)
+	if !strings.HasSuffix(path, g.parts[0].lit) {
+		return false
+	}
+
+	if len(g.parts) == 2 {
+		if !strings.HasPrefix(path, g.parts[1].lit) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (g *Glob) matchRecursiveWildcardFixedFile(path string) bool {
