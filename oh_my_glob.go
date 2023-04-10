@@ -103,6 +103,25 @@ func buildDirectoryPrefixPart(parts []part) part {
 	}
 }
 
+// Do the parts represent **/*.suffix with a (possibly) non-empty prefix of
+// literal, no-wildcard parts?
+func recursiveWildcardSuffixPattern(parts []part) (bool, []part) {
+	if parts[len(parts)-2].kind != doubleStar {
+		return false, nil
+	}
+
+	if !parts[len(parts)-1].isWildcardSuffix() {
+		return false, nil
+	}
+
+	prefixSlice := parts[:len(parts)-2]
+	if !allLiteralsNoWildcards(prefixSlice) {
+		return false, nil
+	}
+
+	return true, prefixSlice
+}
+
 func Compile(glob string) Glob {
 	if glob == "" {
 		return Glob{
@@ -128,22 +147,27 @@ func Compile(glob string) Glob {
 	}
 
 	if len(parts) == 2 {
-		if parts[len(parts)-2].kind == doubleStar {
-			// Matching the special case of **/*suffix.
-			if parts[len(parts)-1].isWildcardSuffix() {
-				parts[0] = part{
-					kind:     literal,
-					lit:      parts[len(parts)-1].lit[1:],
-					no_stars: true,
-				}
-				parts = parts[:1]
-				return Glob{
-					original: glob,
-					kind:     recursiveWildcardSuffix,
-					parts:    parts,
-				}
+		if isPattern, prefixSlice := recursiveWildcardSuffixPattern(parts); isParttern {
+			length := 1
+			// Build the directory prefix before we overwrite things.
+			if len(prefixSlice) != 0 {
+				parts[1] = buildDirectoryPrefixPart(prefixSlice)
+				length = 2
 			}
+			parts[0] = part{
+				kind:     literal,
+				lit:      parts[len(parts)-1].lit[1:],
+				no_stars: true,
+			}
+			parts = parts[:length]
+			return Glob{
+				original: glob,
+				kind:     recursiveWildcardSuffix,
+				parts:    parts,
+			}
+		}
 
+		if parts[len(parts)-2].kind == doubleStar {
 			// Matching the special case of **/filename.
 			p := parts[len(parts)-1]
 			if p.kind == literal && p.no_stars {
