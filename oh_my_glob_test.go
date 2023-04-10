@@ -49,6 +49,14 @@ func BenchmarkNegativeSubdirFromRoot(b *testing.B) {
 	benchmarkMatch(b, "**/*.yaml", "dev/lib/the_cmd/commands/build_from_scratch.rb")
 }
 
+func BenchmarkWildcardTail(b *testing.B) {
+	benchmarkMatch(b, "dev/lib/the_cmd/commands/*", "dev/lib/the_cmd/commands/commands.yaml")
+}
+
+func BenchmarkNegativeWildcardTail(b *testing.B) {
+	benchmarkMatch(b, "dev/lib/the_cmd/commands/*", "ved/bil/dmc_eht/sdnammoc/blah")
+}
+
 func BenchmarkPrefixedSubdirFromRoot(b *testing.B) {
 	benchmarkMatch(b, "dev/**/*.yaml", "dev/lib/the_cmd/commands/commands.yaml")
 }
