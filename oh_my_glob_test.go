@@ -65,6 +65,14 @@ func BenchmarkNegativeRecursiveFixedFile(b *testing.B) {
 	benchmarkMatch(b, "**/__package.rb", "dev/lib/the_cmd/commands/build_from_scratch.rb")
 }
 
+func BenchmarkPrefixedRecursiveFixedFile(b *testing.B) {
+	benchmarkMatch(b, "dev/**/__package.rb", "dev/lib/the_cmd/commands/__package.rb")
+}
+
+func BenchmarkNegativePrefixedRecursiveFixedFile(b *testing.B) {
+	benchmarkMatch(b, "dev/**/__package.rb", "dev/lib/the_cmd/commands/build_from_scratch.rb")
+}
+
 func BenchmarkFixedPathWildcardFile(b *testing.B) {
 	benchmarkMatch(b, "dev/lib/the_cmd/commands/*.yaml", "dev/lib/the_cmd/commands/commands.yaml")
 }
