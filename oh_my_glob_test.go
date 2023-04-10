@@ -57,6 +57,14 @@ func BenchmarkNegativeRecursiveFixedFile(b *testing.B) {
 	benchmarkMatch(b, "**/__package.rb", "dev/lib/the_cmd/commands/build_from_scratch.rb")
 }
 
+func BenchmarkFixedPathWildcardFile(b *testing.B) {
+	benchmarkMatch(b, "dev/lib/the_cmd/commands/*.yaml", "dev/lib/the_cmd/commands/commands.yaml")
+}
+
+func BenchmarkNegativeFixedPathWildcardFile(b *testing.B) {
+	benchmarkMatch(b, "dev/lib/the_cmd/commands/*.yaml", "dev/lib/the_cmd/commands/build_from_scratch.rb")
+}
+
 func TestBasicGlob(t *testing.T) {
 	// basic string equality
 	testCase(t, "what", "what", true)
